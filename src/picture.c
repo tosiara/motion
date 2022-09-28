@@ -510,8 +510,9 @@ static void put_webp_yuv420p_file(FILE *fp, unsigned char *image, int width, int
 static void put_jpeg_yuv420p_file(FILE *fp, unsigned char *image, int width, int height
             , int quality, struct context *cnt, struct timeval *tv1, struct coord *box)
 {
-    int sz = 0;
-    int image_size = cnt->imgs.size_norm;
+    int sz, image_size;
+
+    image_size = (width * height * 3)/2;
     unsigned char *buf = mymalloc(image_size);
 
     sz = jpgutl_put_yuv420p(buf, image_size, image, width, height, quality, cnt ,tv1, box);
@@ -538,8 +539,9 @@ static void put_jpeg_yuv420p_file(FILE *fp, unsigned char *image, int width, int
 static void put_jpeg_grey_file(FILE *picture, unsigned char *image, int width, int height,
             int quality, struct context *cnt, struct timeval *tv1, struct coord *box)
 {
-    int sz = 0;
-    int image_size = cnt->imgs.size_norm;
+    int sz, image_size;
+
+    image_size = (width * height * 3)/2;
     unsigned char *buf = mymalloc(image_size);
 
     sz = jpgutl_put_grey(buf, image_size, image, width, height, quality, cnt ,tv1, box);
@@ -798,7 +800,8 @@ static void put_picture_fd(struct context *cnt, FILE *picture, unsigned char *im
     int width, height, passthrough;
 
     passthrough = util_check_passthrough(cnt);
-    if ((ftype == FTYPE_IMAGE) && (cnt->imgs.size_high > 0) && (!passthrough)) {
+    if (((ftype == FTYPE_IMAGE) || (ftype == FTYPE_IMAGE_SNAPSHOT)) &&
+        (cnt->imgs.size_high > 0) && (!passthrough)) {
         width = cnt->imgs.width_high;
         height = cnt->imgs.height_high;
     } else {
@@ -828,7 +831,7 @@ void put_picture(struct context *cnt, char *file, unsigned char *image, int ftyp
 {
     FILE *picture;
 
-    picture = myfopen(file, "w");
+    picture = myfopen(file, "wbe");
     if (!picture) {
         /* Report to syslog - suggest solution if the problem is access rights to target dir. */
         if (errno ==  EACCES) {
@@ -859,56 +862,78 @@ void put_picture(struct context *cnt, char *file, unsigned char *image, int ftyp
 unsigned char *get_pgm(FILE *picture, int width, int height)
 {
     int x, y, mask_width, mask_height, maxval;
-    char line[256];
     unsigned char *image, *resized_image;
+    char byte, magic[256], w[256], h[256], mx[256];
+    int vars, comment, retcd, indx;
 
-    line[255] = 0;
+    memset(&magic,0,255);
+    memset(&w,0,255);
+    memset(&h, 0, 255);
+    memset(&mx, 0, 255);
 
-    if (!fgets(line, 255, picture)) {
-        MOTION_LOG(ERR, TYPE_ALL, SHOW_ERRNO,_("Could not read from pgm file"));
-        return NULL;
-    }
+    //CR = 0x0D , LF = '0x0A' space = 0x20, # = 0x23, tab = 0x09
+    vars = 0; comment = 0; indx= 0; retcd = 1;
 
-    if (strncmp(line, "P5", 2)) {
-        MOTION_LOG(ERR, TYPE_ALL, SHOW_ERRNO
-            ,_("This is not a pgm file, starts with '%s'"), line);
-        return NULL;
-    }
-
-    /* Skip comment */
-    line[0] = '#';
-    while (line[0] == '#') {
-        if (!fgets(line, 255, picture)) {
-            return NULL;
+    while (retcd != 0) {
+        retcd = fread(&byte, 1, 1, picture);
+        if (retcd !=0) {
+            if (comment == 0) {   /* Not in a comment */
+                if (byte == 0x23) { /* Start of a comment */
+                    comment = 1;
+                } else if ((byte == 0x0d) || (byte == 0x0a) ||
+                           (byte == 0x20) || (byte == 0x09)) {
+                    /* White space, reset indx */
+                    indx = 0;
+                    if (vars == 4) {
+                        retcd = 0;
+                    }
+                } else {    /* All other characters */
+                    if (indx == 0) {
+                        vars++;
+                    }
+                    if (vars == 1) {
+                        magic[indx] = byte;
+                        indx++;
+                    } else if (vars == 2) {
+                        w[indx] = byte;
+                        indx++;
+                    } else if (vars == 3) {
+                        h[indx] = byte;
+                        indx++;
+                    } else if (vars == 4) {
+                        mx[indx] = byte;
+                        indx++;
+                    }
+                }
+            } else {    /* Processing a comment */
+                if ((byte == 0x0d) || (byte == 0x0a)) {
+                    /* End of line for the comment */
+                    comment = 0;
+                }
+            }
         }
     }
 
-    /* Read image size */
-    if (sscanf(line, "%d %d", &mask_width, &mask_height) != 2) {
-        MOTION_LOG(ERR, TYPE_ALL, SHOW_ERRNO
-            ,_("Failed reading size in pgm file"));
+    if (vars != 4) {
+        MOTION_LOG(ERR, TYPE_ALL, NO_ERRNO,_("Error getting PGM vars."));
         return NULL;
     }
 
-    /* Maximum value */
-    line[0] = '#';
-    while (line[0] == '#') {
-        if (!fgets(line, 255, picture)) {
-            return NULL;
-        }
-    }
-
-    if (sscanf(line, "%d", &maxval) != 1) {
+    if (mystrne(magic,"P5")) {
         MOTION_LOG(ERR, TYPE_ALL, SHOW_ERRNO
-            ,_("Failed reading maximum value in pgm file"));
+            ,_("This is not a pgm file, starts with '%s'"), magic);
         return NULL;
     }
 
-    /* Read data */
-    /* We allocate the size for a 420P since we will use
-    ** this image for masking privacy which needs the space for
-    ** the cr / cb components
-    */
+    mask_width = atoi(w);
+    mask_height = atoi(h);
+    maxval = atoi(mx);
+
+    MOTION_LOG(DBG, TYPE_ALL, NO_ERRNO
+        , _("Magic %s: Width %s(%d): Height %s(%d): MaxVal: %s(%d)")
+        , magic, w, mask_width, h, mask_height, mx, maxval);
+
+    /* Read data into image*/
     image = mymalloc((mask_width * mask_height * 3) / 2);
 
     for (y = 0; y < mask_height; y++) {
@@ -959,7 +984,7 @@ void put_fixed_mask(struct context *cnt, const char *file)
 {
     FILE *picture;
 
-    picture = myfopen(file, "w");
+    picture = myfopen(file, "wbe");
     if (!picture) {
         /* Report to syslog - suggest solution if the problem is access rights to target dir. */
         if (errno ==  EACCES) {

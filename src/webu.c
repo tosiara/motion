@@ -619,7 +619,6 @@ void webu_process_action(struct webui_ctx *webui)
                     _("Quitting thread %d"),webui->thread_nbr);
                 webui->cntlst[indx]->restart = FALSE;
                 webui->cntlst[indx]->event_stop = TRUE;
-                webui->cntlst[indx]->event_user = TRUE;
                 webui->cntlst[indx]->finish = TRUE;
             }
         } else {
@@ -627,7 +626,6 @@ void webu_process_action(struct webui_ctx *webui)
                 _("Quitting thread %d"),webui->thread_nbr);
             webui->cnt->restart = FALSE;
             webui->cnt->event_stop = TRUE;
-            webui->cnt->event_user = TRUE;
             webui->cnt->finish = TRUE;
         }
 
@@ -637,7 +635,6 @@ void webu_process_action(struct webui_ctx *webui)
                 webui->cntlst[indx]->webcontrol_finish = TRUE;
                 webui->cntlst[indx]->restart = FALSE;
                 webui->cntlst[indx]->event_stop = TRUE;
-                webui->cntlst[indx]->event_user = TRUE;
                 webui->cntlst[indx]->finish = TRUE;
                 indx++;
             }
@@ -1866,7 +1863,7 @@ static char *webu_mhd_loadfile(const char *fname)
     if (fname == NULL) {
         file_char = NULL;
     } else {
-        infile = fopen(fname, "rb");
+        infile = myfopen(fname, "rbe");
         if (infile != NULL) {
             fseek(infile, 0, SEEK_END);
             file_size = ftell(infile);

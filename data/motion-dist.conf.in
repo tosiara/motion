@@ -85,7 +85,7 @@ video_params palette=17
 ; mmalcam_name value
 
 # Camera control parameters (see raspivid/raspistill tool documentation)
-; mmalcam_control_params value
+; mmalcam_params value
 
 
 ############################################################

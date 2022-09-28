@@ -554,7 +554,8 @@ static void motion_detected(struct context *cnt, int dev, struct image_data *img
             cnt->prev_event = cnt->event_nr;
             cnt->eventtime = img->timestamp_tv.tv_sec;
             localtime_r(&cnt->eventtime, cnt->eventtime_tm);
-
+            sprintf(cnt->eventid,"%05d",cnt->camera_id);
+            strftime(cnt->eventid+5, 15,"%Y%m%d%H%M%S", cnt->eventtime_tm);
             /*
              * Since this is a new event we create the event_text_string used for
              * the %C conversion specifier. We may already need it for
@@ -563,9 +564,9 @@ static void motion_detected(struct context *cnt, int dev, struct image_data *img
             mystrftime(cnt, cnt->text_event_string, sizeof(cnt->text_event_string),
                        cnt->conf.text_event, &img->timestamp_tv, NULL, 0);
 
-            MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO, _("Motion detected - starting event %d"),
-                       cnt->event_nr);
-
+            MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO
+                , _("Motion detected - starting event %d.")
+                , cnt->event_nr);
             /* EVENT_FIRSTMOTION triggers on_event_start_command and event_ffmpeg_newfile */
 
             indx = cnt->imgs.image_ring_out-1;
@@ -654,7 +655,7 @@ static void process_image_ring(struct context *cnt)
         cnt->current_image = &cnt->imgs.image_ring[cnt->imgs.image_ring_out];
 
         if (cnt->imgs.image_ring[cnt->imgs.image_ring_out].shot < cnt->conf.framerate) {
-            if (cnt->log_level >= DBG) {
+            if (cnt_list[0]->log_level >= DBG) {
                 char tmp[32];
                 const char *t;
 
@@ -670,12 +671,15 @@ static void process_image_ring(struct context *cnt)
                     t = "Other";
                 }
 
-                mystrftime(cnt, tmp, sizeof(tmp), "%H%M%S-%q",
-                           &cnt->imgs.image_ring[cnt->imgs.image_ring_out].timestamp_tv, NULL, 0);
-                draw_text(cnt->imgs.image_ring[cnt->imgs.image_ring_out].image_norm,
-                          cnt->imgs.width, cnt->imgs.height, 10, 20, tmp, cnt->text_scale);
-                draw_text(cnt->imgs.image_ring[cnt->imgs.image_ring_out].image_norm,
-                          cnt->imgs.width, cnt->imgs.height, 10, 30, t, cnt->text_scale);
+                mystrftime(cnt, tmp, sizeof(tmp), "%H:%M:%S-%q"
+                    , &cnt->imgs.image_ring[cnt->imgs.image_ring_out].timestamp_tv
+                    , NULL, 0);
+                draw_text(cnt->imgs.image_ring[cnt->imgs.image_ring_out].image_norm
+                    , cnt->imgs.width, cnt->imgs.height, 10
+                    , 20, tmp, cnt->text_scale);
+                draw_text(cnt->imgs.image_ring[cnt->imgs.image_ring_out].image_norm
+                    , cnt->imgs.width, cnt->imgs.height, 10
+                    , 20 + (10*cnt->text_scale), t, cnt->text_scale);
             }
 
             /* Output the picture to jpegs and ffmpeg */
@@ -832,7 +836,7 @@ static void init_mask_privacy(struct context *cnt)
     cnt->imgs.mask_privacy_high_uv = NULL;
 
     if (cnt->conf.mask_privacy) {
-        if ((picture = myfopen(cnt->conf.mask_privacy, "r"))) {
+        if ((picture = myfopen(cnt->conf.mask_privacy, "re"))) {
             MOTION_LOG(INF, TYPE_ALL, NO_ERRNO, _("Opening privacy mask file"));
             /*
              * NOTE: The mask is expected to have the output dimensions. I.e., the mask
@@ -1279,7 +1283,7 @@ static int motion_init(struct context *cnt)
 
     /* Load the mask file if any */
     if (cnt->conf.mask_file) {
-        if ((picture = myfopen(cnt->conf.mask_file, "r"))) {
+        if ((picture = myfopen(cnt->conf.mask_file, "re"))) {
             /*
              * NOTE: The mask is expected to have the output dimensions. I.e., the mask
              * applies to the already rotated image, not the capture image. Thus, use
@@ -1439,8 +1443,8 @@ static void motion_cleanup(struct context *cnt)
     mot_stream_deinit(cnt);
 
     if (cnt->video_dev >= 0) {
-        MOTION_LOG(INF, TYPE_ALL, NO_ERRNO, _("Calling vid_close() from motion_cleanup"));
         vid_close(cnt);
+        cnt->video_dev = -1;
     }
 
     free(cnt->imgs.img_motion.image_norm);
@@ -1475,28 +1479,28 @@ static void motion_cleanup(struct context *cnt)
 
     if (cnt->imgs.mask) {
         free(cnt->imgs.mask);
+        cnt->imgs.mask = NULL;
     }
-    cnt->imgs.mask = NULL;
 
     if (cnt->imgs.mask_privacy) {
         free(cnt->imgs.mask_privacy);
+        cnt->imgs.mask_privacy = NULL;
     }
-    cnt->imgs.mask_privacy = NULL;
 
     if (cnt->imgs.mask_privacy_uv) {
         free(cnt->imgs.mask_privacy_uv);
+        cnt->imgs.mask_privacy_uv = NULL;
     }
-    cnt->imgs.mask_privacy_uv = NULL;
 
     if (cnt->imgs.mask_privacy_high) {
         free(cnt->imgs.mask_privacy_high);
+        cnt->imgs.mask_privacy_high = NULL;
     }
-    cnt->imgs.mask_privacy_high = NULL;
 
     if (cnt->imgs.mask_privacy_high_uv) {
         free(cnt->imgs.mask_privacy_high_uv);
+        cnt->imgs.mask_privacy_high_uv = NULL;
     }
-    cnt->imgs.mask_privacy_high_uv = NULL;
 
     free(cnt->imgs.common_buffer);
     cnt->imgs.common_buffer = NULL;
@@ -1504,10 +1508,12 @@ static void motion_cleanup(struct context *cnt)
     free(cnt->imgs.preview_image.image_norm);
     cnt->imgs.preview_image.image_norm = NULL;
 
-    if (cnt->imgs.size_high > 0) {
+    if (cnt->imgs.image_virgin.image_high != NULL) {
         free(cnt->imgs.image_virgin.image_high);
         cnt->imgs.image_virgin.image_high = NULL;
+    }
 
+    if (cnt->imgs.preview_image.image_high != NULL) {
         free(cnt->imgs.preview_image.image_high);
         cnt->imgs.preview_image.image_high = NULL;
     }
@@ -1528,8 +1534,8 @@ static void motion_cleanup(struct context *cnt)
 
     if (cnt->rolling_average_data != NULL) {
         free(cnt->rolling_average_data);
+        cnt->rolling_average_data = NULL;
     }
-
 
     /* Cleanup the current time structure */
     free(cnt->currenttime_tm);
@@ -1808,52 +1814,42 @@ static void mlp_resetimages(struct context *cnt)
 
 static int mlp_retry(struct context *cnt)
 {
-
-    /*
-     * If a camera is not available we keep on retrying every 10 seconds
-     * until it shows up.
-     */
-    int size_high;
+    int size_high, height, width;
 
     if (cnt->video_dev < 0 && cnt->currenttime % 10 == 0 && cnt->shots == 0) {
         MOTION_LOG(WRN, TYPE_ALL, NO_ERRNO
             ,_("Retrying until successful connection with camera"));
-        cnt->video_dev = vid_start(cnt);
 
+        width = cnt->imgs.width;
+        height  = cnt->imgs.height;
+
+        cnt->video_dev = vid_start(cnt);
         if (cnt->video_dev < 0) {
-            return 1;
+            return 0;
         }
 
+        MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO, _("Camera has become available."));
+
         if ((cnt->imgs.width % 8) || (cnt->imgs.height % 8)) {
-            MOTION_LOG(CRT, TYPE_NETCAM, NO_ERRNO
-                ,_("Image width (%d) or height(%d) requested is not modulo 8.")
+            MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO
+                , _("Restarting Motion.\n"
+                "Image width (%d) or height(%d) requested is not modulo 8.")
                 ,cnt->imgs.width, cnt->imgs.height);
             return 1;
         }
 
         if ((cnt->imgs.width  < 64) || (cnt->imgs.height < 64)) {
-            MOTION_LOG(ERR, TYPE_ALL, NO_ERRNO
-                ,_("Motion only supports width and height greater than or equal to 64 %dx%d")
+            MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO
+                , _("Restarting Motion.\n"
+                "Motion only supports width and height greater than or equal to 64 %dx%d")
                 ,cnt->imgs.width, cnt->imgs.height);
                 return 1;
         }
 
-        /*
-         * If the netcam has different dimensions than in the config file
-         * we need to restart Motion to re-allocate all the buffers
-         */
-        if (cnt->imgs.width != cnt->conf.width || cnt->imgs.height != cnt->conf.height) {
-            MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO, _("Camera has finally become available\n"
-                       "Camera image has different width and height"
-                       "from what is in the config file. You should fix that\n"
-                       "Restarting Motion thread to reinitialize all "
-                       "image buffers to new picture dimensions"));
-            cnt->conf.width = cnt->imgs.width;
-            cnt->conf.height = cnt->imgs.height;
-            /*
-             * Break out of main loop terminating thread
-             * watchdog will start us again
-             */
+        if (cnt->imgs.width != width || cnt->imgs.height != height) {
+            MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO
+                , _("Restarting Motion.\n"
+                "Height or width has changed on camera."));
             return 1;
         }
         /*
@@ -1863,6 +1859,9 @@ static int mlp_retry(struct context *cnt)
          */
         size_high = (cnt->imgs.width_high * cnt->imgs.height_high * 3) / 2;
         if (cnt->imgs.size_high != size_high) {
+            MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO
+                , _("Restarting Motion.\n"
+                "High resolution has changed on camera."));
             return 1;
         }
     }
@@ -2909,7 +2908,7 @@ static void become_daemon(void)
      * for an enter.
      */
     if (cnt_list[0]->conf.pid_file) {
-        pidf = myfopen(cnt_list[0]->conf.pid_file, "w+");
+        pidf = myfopen(cnt_list[0]->conf.pid_file, "w+e");
 
         if (pidf) {
             (void)fprintf(pidf, "%d\n", getpid());
@@ -2941,20 +2940,20 @@ static void become_daemon(void)
     #endif
 
 
-    if ((i = open("/dev/tty", O_RDWR)) >= 0) {
+    if ((i = open("/dev/tty", O_RDWR|O_CLOEXEC)) >= 0) {
         ioctl(i, TIOCNOTTY, NULL);
         close(i);
     }
 
     setsid();
-    i = open("/dev/null", O_RDONLY);
+    i = open("/dev/null", O_RDONLY|O_CLOEXEC);
 
     if (i != -1) {
         dup2(i, STDIN_FILENO);
         close(i);
     }
 
-    i = open("/dev/null", O_WRONLY);
+    i = open("/dev/null", O_WRONLY|O_CLOEXEC);
 
     if (i != -1) {
         dup2(i, STDOUT_FILENO);
