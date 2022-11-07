@@ -20,8 +20,8 @@
  *    Copyright 2000 by Jeroen Vreeken (pe1rxq@amsat.org)
  *
  */
-#include "translate.h"
 #include "motion.h"
+#include "translate.h"
 #include "util.h"
 #include "logger.h"
 #include "ffmpeg.h"
@@ -1158,7 +1158,7 @@ static int motion_init(struct context *cnt)
     }
     /* Substream size notification*/
     if ((cnt->imgs.width % 16) || (cnt->imgs.height % 16)) {
-        MOTION_LOG(CRT, TYPE_NETCAM, NO_ERRNO
+        MOTION_LOG(NTC, TYPE_NETCAM, NO_ERRNO
             ,_("Substream not available.  Image sizes not modulo 16."));
     }
 
@@ -1831,7 +1831,7 @@ static int mlp_retry(struct context *cnt)
         MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO, _("Camera has become available."));
 
         if ((cnt->imgs.width % 8) || (cnt->imgs.height % 8)) {
-            MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO
+            MOTION_LOG(CRT, TYPE_ALL, NO_ERRNO
                 , _("Restarting Motion.\n"
                 "Image width (%d) or height(%d) requested is not modulo 8.")
                 ,cnt->imgs.width, cnt->imgs.height);
@@ -1839,7 +1839,7 @@ static int mlp_retry(struct context *cnt)
         }
 
         if ((cnt->imgs.width  < 64) || (cnt->imgs.height < 64)) {
-            MOTION_LOG(NTC, TYPE_ALL, NO_ERRNO
+            MOTION_LOG(CRT, TYPE_ALL, NO_ERRNO
                 , _("Restarting Motion.\n"
                 "Motion only supports width and height greater than or equal to 64 %dx%d")
                 ,cnt->imgs.width, cnt->imgs.height);
@@ -3544,7 +3544,7 @@ int main (int argc, char **argv)
 
     dbse_global_init(cnt_list);
 
-    translate_init();
+    translate_init(cnt_list[0]);
 
     do {
         if (restart) {
