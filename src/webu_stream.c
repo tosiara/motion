@@ -133,6 +133,7 @@ static void webu_stream_mjpeg_getimg(struct webui_ctx *webui)
         /* If no image, wait a second*/
         if (local_stream->jpeg_data == NULL) {
             pthread_mutex_unlock(&webui->cnt->mutex_stream);
+                MOTION_LOG(DBG, TYPE_STREAM, NO_ERRNO, "TODO: find a better way to sync threads, SLEEP 1 second");
                 SLEEP(1,0);
             pthread_mutex_lock(&webui->cnt->mutex_stream);
         }
