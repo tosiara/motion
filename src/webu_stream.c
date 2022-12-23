@@ -130,13 +130,21 @@ static void webu_stream_mjpeg_getimg(struct webui_ctx *webui)
         } else {
             webui->stream_fps = webui->cnt->conf.stream_maxrate;
         }
-        /* If no image, wait a second*/
-        if (local_stream->jpeg_data == NULL) {
+
+        /* If no image, sleep up to 2 seconds (20 * 0.1) and then fail */
+        for (int i = 0; i < 20; i++) {
+            if (local_stream->jpeg_data != NULL) {
+                MOTION_LOG(ERR, TYPE_STREAM, NO_ERRNO, "waited for snapshot to be available %d times", i);
+                break;
+            }
+
+            /* poor man's thread sync: sleep and hope that picture will be magucally available */
             pthread_mutex_unlock(&webui->cnt->mutex_stream);
-                MOTION_LOG(DBG, TYPE_STREAM, NO_ERRNO, "TODO: find a better way to sync threads, SLEEP 1 second");
-                SLEEP(1,0);
+                MOTION_LOG(ERR, TYPE_STREAM, NO_ERRNO, "TODO: find a better way to sync threads, SLEEP 100 ms");
+                SLEEP(0, 100000000L);
             pthread_mutex_lock(&webui->cnt->mutex_stream);
         }
+
         /* If still no image, give up */
         if (local_stream->jpeg_data == NULL) {
             pthread_mutex_unlock(&webui->cnt->mutex_stream);
