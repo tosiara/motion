@@ -226,6 +226,7 @@ static void webu_stream_static_getimg(struct webui_ctx *webui)
     memset(webui->resp_page, '\0', webui->resp_size);
 
     pthread_mutex_lock(&webui->cnt->mutex_stream);
+
         /* If no image, sleep up to 2 seconds (20 * 0.1) and then fail */
         for (int i = 0; i < 20; i++) {
             if (webui->cnt->stream_norm.jpeg_data != NULL) {
