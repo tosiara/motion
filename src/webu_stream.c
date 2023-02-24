@@ -134,13 +134,12 @@ static void webu_stream_mjpeg_getimg(struct webui_ctx *webui)
         /* If no image, sleep up to 2 seconds (20 * 0.1) and then fail */
         for (int i = 0; i < 20; i++) {
             if (local_stream->jpeg_data != NULL) {
-                MOTION_LOG(ERR, TYPE_STREAM, NO_ERRNO, "waited for snapshot to be available %d times", i);
                 break;
             }
 
-            /* poor man's thread sync: sleep and hope that picture will be magucally available */
+            /* poor man's thread sync: sleep and hope that picture will be magically available */
             pthread_mutex_unlock(&webui->cnt->mutex_stream);
-                MOTION_LOG(ERR, TYPE_STREAM, NO_ERRNO, "TODO: find a better way to sync threads, SLEEP 100 ms");
+                MOTION_LOG(ERR, TYPE_STREAM, NO_ERRNO, "TODO: find a better way to sync threads, SLEEP 100 ms, try %d", i+1);
                 SLEEP(0, 100000000L);
             pthread_mutex_lock(&webui->cnt->mutex_stream);
         }
@@ -195,6 +194,7 @@ static ssize_t webu_stream_mjpeg_response (void *cls, uint64_t pos, char *buf, s
         webu_stream_mjpeg_getimg(webui);
 
         if (webui->resp_used == 0) {
+            MOTION_LOG(ERR, TYPE_STREAM, NO_ERRNO, _("Could not get mjpeg image to stream."));
             return 0;
         }
     }
@@ -226,12 +226,19 @@ static void webu_stream_static_getimg(struct webui_ctx *webui)
     memset(webui->resp_page, '\0', webui->resp_size);
 
     pthread_mutex_lock(&webui->cnt->mutex_stream);
-        /* If no image, wait a second*/
-        if (webui->cnt->stream_norm.jpeg_data == NULL) {
+        /* If no image, sleep up to 2 seconds (20 * 0.1) and then fail */
+        for (int i = 0; i < 20; i++) {
+            if (webui->cnt->stream_norm.jpeg_data != NULL) {
+                break;
+            }
+
+            /* poor man's thread sync: sleep and hope that picture will be magically available */
             pthread_mutex_unlock(&webui->cnt->mutex_stream);
-                SLEEP(1,0);
+                MOTION_LOG(ERR, TYPE_STREAM, NO_ERRNO, "TODO: find a better way to sync threads, SLEEP 100 ms, try %d", i+1);
+                SLEEP(0, 100000000L);
             pthread_mutex_lock(&webui->cnt->mutex_stream);
         }
+
         /* If still no image, give up */
         if (webui->cnt->stream_norm.jpeg_data == NULL) {
             pthread_mutex_unlock(&webui->cnt->mutex_stream);
