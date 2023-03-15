@@ -464,6 +464,11 @@ static int netcam_rtsp_decode_video(struct rtsp_context *rtsp_data)
             av_strerror(retcd, errstr, sizeof(errstr));
             MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO
                 ,_("Error sending packet to codec: %s"), errstr);
+            if (!strcmp(rtsp_data->service, "file"))
+            {
+                MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO, _("Ignoring the above error for file://"));
+                return 0;
+            }
             return -1;
         }
 
