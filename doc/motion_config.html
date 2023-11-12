@@ -234,26 +234,18 @@
       <p></p>
 
       <a name="basic_setup_picam"></a>
-      <strong>The raspberry Pi camera</strong> is set up multiple ways depending upon the distro being used.
-      <p></p>
-      In the Raspbian version based upon Debian release of 'bullseye' (and presumably later releases), Raspbian
-      allows access to the PI camera via an application called
+      <strong>The raspberry Pi camera</strong> is set up via an application called
       <i><small><code>libcamera</code></small></i>.  <i><small><code>libcamera</code></small></i> provides
       access to the camera as a v4l2 device but this interface is only available when using a special
       application.  Users must run Motion using the
       command <i><small><code>libcamerify motion</code></small></i> and
-      then specify /dev/video0 in the Motion configuration file.
+      then specify the /dev/videoX device in the Motion configuration file.
       <p></p>
-      For Raspbian releases prior to 'bullseye', the PI camera can be set up two different ways.  If Motion is installed by using the
-      apt packages (e.g. apt-get install motion), then the camera must be set up using the bcm2835-v4l2 module which creates
-      a v4l2 device for the camera.  Users will need to install this module using the
-      command <code>sudo modprobe bcm2835-v4l2</code>.  This
-      will set up the camera as a normal v4l2 device and it can be accessed via a standard /dev/videoX device.  If Motion is
-      built from source or installed via the deb packages on the project release page, then an additional option is to set
-      up the camera using the <a href="#mmalcam_name" >mmalcam_name</a> parameter or using
-      the bcm2835-v4l2 module.  <strong>When Motion is installed via apt, the mmalcam option is not available.</strong>
-      It has been noted that this historical method of accessing the PI camera may be available in newer
-      releases via the enabling the legacy camera stack but it is unclear how long this method will be permitted.
+      With just one camera connected to the Pi, the device name should normally be
+      <i><small><code>/dev/video0</code></small></i>.  With multiple cameras connected, e.g. a regular
+      USB web and the Pi camera, you will need to determine the device associated with the
+      Pi camera and the USB camera.  The list of devices can be seen using the command
+      (<i><small><code>v4l2-ctl --list-devices</code></small></i>).
       <p></p>
 
       <a name="basic_setup_composite"></a>

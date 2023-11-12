@@ -761,6 +761,7 @@ static void event_extpipe_end(struct context *cnt, motion_event eventtype
         MOTION_LOG(NTC, TYPE_EVENTS, NO_ERRNO, _("pclose return: %d"),
                    pclose(cnt->extpipe));
         event(cnt, EVENT_FILECLOSE, NULL, cnt->extpipefilename, (void *)FTYPE_MPEG, tv1);
+        cnt->extpipe = NULL;
     }
 }
 
@@ -780,7 +781,8 @@ static void event_create_extpipe(struct context *cnt, motion_event eventtype
 
         cnt->movie_last_shot = -1;
         cnt->movie_fps = cnt->lastrate;
-        cnt->movietime = tv1->tv_sec;
+        cnt->movie_tv.tv_sec = tv1->tv_sec;
+        cnt->movie_tv.tv_usec = tv1->tv_usec;
 
         MOTION_LOG(INF, TYPE_EVENTS, NO_ERRNO, _("Source FPS %d"), cnt->movie_fps);
 
@@ -910,7 +912,8 @@ static void event_ffmpeg_newfile(struct context *cnt, motion_event eventtype
 
     cnt->movie_last_shot = -1;
     cnt->movie_fps = cnt->lastrate;
-    cnt->movietime = tv1->tv_sec;
+    cnt->movie_tv.tv_sec = tv1->tv_sec;
+    cnt->movie_tv.tv_usec = tv1->tv_usec;
 
     MOTION_LOG(INF, TYPE_EVENTS, NO_ERRNO, _("Source FPS %d"), cnt->movie_fps);
 
