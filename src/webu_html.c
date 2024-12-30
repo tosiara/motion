@@ -487,7 +487,7 @@ static void webu_html_config(struct webui_ctx *webui)
         val_main = config_params[indx_parm].print(webui->cntlst, NULL, indx_parm, 0);
 
         snprintf(response, sizeof (response),
-            "        <option value='%s' data-cam_all00=\""
+            "        <option value='%s' data-cam_all00='"
             , config_params[indx_parm].param_name);
         webu_write(webui, response);
 
@@ -514,11 +514,11 @@ static void webu_html_config(struct webui_ctx *webui)
                     }
                 }
                 if (diff_vals) {
-                    snprintf(response, sizeof (response),"%s","\" \\ \n");
+                    snprintf(response, sizeof (response),"%s","' \\ \n");
                     webu_write(webui, response);
 
                     snprintf(response, sizeof (response),
-                        "           data-cam_%05d=\""
+                        "           data-cam_%05d='"
                         ,webui->cntlst[indx]->camera_id);
                     webu_write(webui, response);
                     if (val_thread != NULL) {
@@ -532,11 +532,11 @@ static void webu_html_config(struct webui_ctx *webui)
         if (mystrceq(webui->lang,"en") ||
             mystrceq(config_params[indx_parm].param_name
                 ,_(config_params[indx_parm].param_name))) {
-            snprintf(response, sizeof (response),"\" >%s</option>\n",
+            snprintf(response, sizeof (response),"' >%s</option>\n",
                 config_params[indx_parm].param_name);
             webu_write(webui, response);
         } else {
-            snprintf(response, sizeof (response),"\" >%s (%s)</option>\n",
+            snprintf(response, sizeof (response),"' >%s (%s)</option>\n",
                 config_params[indx_parm].param_name
                 ,_(config_params[indx_parm].param_name));
             webu_write(webui, response);
@@ -549,7 +549,7 @@ static void webu_html_config(struct webui_ctx *webui)
 
     snprintf(response, sizeof (response),
         "      </select>\n"
-        "      <input type=\"text\"   id=\"cfg_value\" >\n"
+        "      <input type='text'   id='cfg_value'>\n"
         "      <input type='button' id='cfg_button' value='%s' onclick='config_click()'>\n"
         "    </form>\n"
         "  </div>\n"
@@ -1046,7 +1046,7 @@ static void webu_html_script_cfgclk(struct webui_ctx *webui)
     snprintf(response, sizeof (response),
         "      var optval=encodeURI(baseval);\n"
         "      if (camnbr == \"all00\") {\n"
-        "        url = url + \"%05d\";\n"
+        "        url = url + '%05d';\n"
         "      } else {\n"
         "        url = url + camnbr;\n"
         "      }\n"
@@ -1061,7 +1061,7 @@ static void webu_html_script_cfgclk(struct webui_ctx *webui)
         "        }\n"
         "      }\n"
         "      http.send(null);\n"
-        "      document.getElementById('cfg_value').value = \"\";\n"
+        "      document.getElementById('cfg_value').value = '';\n"
         "      opts.options[opts.selectedIndex].setAttribute('data-'+camstr,baseval);\n"
         "      opts.value = 'default';\n"
         "    }\n\n");
