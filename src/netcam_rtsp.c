@@ -274,6 +274,7 @@ static int netcam_decode_sw(struct rtsp_context *rtsp_data)
         retcd = avcodec_receive_frame(rtsp_data->codec_context, rtsp_data->frame);
         if ((rtsp_data->interrupted) || (rtsp_data->finish) || (retcd < 0) ) {
             if (retcd == AVERROR(EAGAIN)) {
+                MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO,_("EAGAIN(%d)"), retcd);
                 retcd = 0;
             } else if (retcd == AVERROR_INVALIDDATA) {
                 MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO
@@ -283,10 +284,11 @@ static int netcam_decode_sw(struct rtsp_context *rtsp_data)
             } else if (retcd < 0) {
                 av_strerror(retcd, errstr, sizeof(errstr));
                     MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO
-                        ,_("%s: Rec frame error: %s")
-                        ,rtsp_data->cameratype, errstr);
+                        ,_("%s: Rec frame error: %s, retcd=%d")
+                        ,rtsp_data->cameratype, errstr, retcd);
                 retcd = -1;
             } else {
+                MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO,_("retcd=%d"), retcd);
                 retcd = -1;
             }
             return retcd;
