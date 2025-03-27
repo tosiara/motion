@@ -572,7 +572,7 @@ static int netcam_rtsp_decode_packet(struct rtsp_context *rtsp_data)
 
     retcd = netcam_rtsp_decode_video(rtsp_data);
     if (retcd <= 0) {
-        MOTION_LOG(ERR, TYPE_NETCAM, NO_ERRNO, "netcam_rtsp_decode_video returned retcd=%d", retcd);
+        MOTION_LOG(NTC, TYPE_NETCAM, NO_ERRNO, "netcam_rtsp_decode_video returned retcd=%d", retcd);
         return retcd;
     }
 
