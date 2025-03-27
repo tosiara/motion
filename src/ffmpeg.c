@@ -1297,7 +1297,7 @@ void ffmpeg_avcodec_log(void *ignoreme, int errno_flag, const char *fmt, va_list
      * the log level.  Now we put the avcodec messages to INF level since their error
      * are not necessarily our errors.
      */
-    if (errno_flag <= AV_LOG_WARNING) {
+    if (/*errno_flag <= AV_LOG_WARNING*/ 1) {
         /* Flatten the message coming in from avcodec. */
         vsnprintf(buf, sizeof(buf), fmt, vl);
         end = buf + strlen(buf);

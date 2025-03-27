@@ -572,6 +572,7 @@ static int netcam_rtsp_decode_packet(struct rtsp_context *rtsp_data)
 
     retcd = netcam_rtsp_decode_video(rtsp_data);
     if (retcd <= 0) {
+        MOTION_LOG(ERR, TYPE_NETCAM, NO_ERRNO, "netcam_rtsp_decode_video returned retcd=%d", retcd);
         return retcd;
     }
 
@@ -1301,8 +1302,10 @@ static int netcam_rtsp_read_image(struct rtsp_context *rtsp_data)
     nodata = 0;
     haveimage = FALSE;
 
+    MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO,_("start while loop"));
     while ((haveimage == FALSE) && (rtsp_data->interrupted == FALSE)) {
         retcd = av_read_frame(rtsp_data->format_context, rtsp_data->packet_recv);
+        MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO,_("av_read_frame returned retcd=%d"), retcd);
         /* The 2000 for nodata tries is arbritrary*/
         if ((rtsp_data->interrupted) || (retcd < 0 ) || (nodata > 2000)) {
             if (rtsp_data->interrupted) {
@@ -1342,9 +1345,11 @@ static int netcam_rtsp_read_image(struct rtsp_context *rtsp_data)
             }
 
             if (size_decoded > 0 ) {
+                MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO, _("size_decoded=%d"), size_decoded);
                 haveimage = TRUE;
             } else if (size_decoded == 0) {
                 /* Did not fail, just didn't get anything.  Try again */
+                MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO, _("nodata=%d"), nodata);
                 nodata++;
                 netcam_rtsp_free_pkt(rtsp_data);
                 rtsp_data->packet_recv = my_packet_alloc(rtsp_data->packet_recv);
@@ -2044,6 +2049,7 @@ static void netcam_rtsp_handler_wait(struct rtsp_context *rtsp_data)
         ((rtsp_data->frame_curr_tm.tv_sec - rtsp_data->frame_prev_tm.tv_sec) * 1000000L) -
         (rtsp_data->frame_curr_tm.tv_usec - rtsp_data->frame_prev_tm.tv_usec);
     if ((usec_delay > 0) && (usec_delay < 1000000L)) {
+        MOTION_LOG(NTC, TYPE_NETCAM, SHOW_ERRNO, "sleep %d", usec_delay);
         SLEEP(0, usec_delay * 1000);
     }
 
