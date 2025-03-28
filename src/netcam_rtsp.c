@@ -1304,8 +1304,15 @@ static int netcam_rtsp_read_image(struct rtsp_context *rtsp_data)
 
     MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO,_("start while loop"));
     while ((haveimage == FALSE) && (rtsp_data->interrupted == FALSE)) {
+        struct timeval before_av_read_frame, after_av_read_frame;
+        gettimeofday(&before_av_read_frame, NULL);
         retcd = av_read_frame(rtsp_data->format_context, rtsp_data->packet_recv);
-        MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO,_("av_read_frame returned retcd=%d"), retcd);
+        gettimeofday(&after_av_read_frame, NULL);
+		double before_f = before_av_read_frame.tv_sec + before_av_read_frame.tv_usec / 1000000.0;
+		double after_f  =  after_av_read_frame.tv_sec +  after_av_read_frame.tv_usec / 1000000.0;
+
+        MOTION_LOG(INF, TYPE_NETCAM, NO_ERRNO,_("%lf(%lf) av_read_frame returned retcd=%d"), retcd,
+            after_f, after_f - before_f);
         /* The 2000 for nodata tries is arbritrary*/
         if ((rtsp_data->interrupted) || (retcd < 0 ) || (nodata > 2000)) {
             if (rtsp_data->interrupted) {
