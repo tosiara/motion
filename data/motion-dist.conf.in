@@ -195,10 +195,10 @@ snapshot_filename %v-%Y%m%d%H%M%S-snapshot
 movie_output on
 
 # The encoding quality of the movie. (0=use bitrate. 1=worst quality, 100=best)
-movie_quality 45
+movie_quality 70
 
 # Bitrate of movies produced by ffmpeg
-movie_bps 2000
+; movie_bps 2000
 
 # Container/Codec to used for the movie. See motion_guide.html
 movie_codec mkv
