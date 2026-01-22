@@ -1112,7 +1112,7 @@ static int draw_textn(unsigned char *image, int startx,  int starty,  int width,
     for (pos = 0; pos < len; pos++) {
         int pos_check = (int)text[pos];
 
-        if ((pos_check <0) || (pos_check >127)) {
+        if ((pos_check <0) || (pos_check >126)) {
             pos_check = 45; /* Use a - for non ascii characters*/
         }
 
